@@ -195,7 +195,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 export const resendVerficationEmail = asyncHandler(async (req, res) => {
-  // logic
+  // login
 });
 
 export const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -203,13 +203,84 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 export const forgotPasswordRequest = asyncHandler(async (req, res) => {
-  // logic
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  const user = await User.findOne({ email });
+
+  const { hashedToken, tokenExpiry } = await user.generateTemporaryToken();
+  user.forgotPasswordToken = hashedToken;
+  user.forgotPasswordExpiry = tokenExpiry;
+
+  await user.save();
+
+  await sendMail({
+    email: user.email,
+    subject: "Change Your Password",
+    mailGenContent: emailVerificationMailGenContent(
+      user.username,
+      `${process.env.BASE_URL}/api/v1/auth/change-password/${hashedToken}`,
+    ),
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Password reset mail sent"));
 });
 
 export const changeCurrentPassword = asyncHandler(async (req, res) => {
-  // logic
+  const { token } = req.params;
+  const { password } = req.body;
+
+  if (!password) {
+    throw new ApiError(400, "Password is required");
+  }
+
+  const user = await User.findOne({ forgotPasswordToken: token });
+  if (!user) {
+    throw new ApiError(404, "Invalid or Expired Token");
+  }
+
+  if (user.forgotPasswordExpiry < Date.now()) {
+    throw new ApiError(
+      400,
+      "Token expired. Please request a new password reset",
+    );
+  }
+
+  user.password = password;
+  user.forgotPasswordToken = undefined;
+  user.forgotPasswordExpiry = undefined;
+
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Password changed successfully"));
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
-  // logic
+  const userId = req.id;
+
+  const user = await User.findById(userId).select(
+    "-password -isEmailVerified -forgotPasswordToken -forgotPasswordExpiry -refreshToken -refreshTokenExpiry -emailVerificationToken -emailVerificationExpiry",
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: {
+          fullname: user.fullname,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar.url,
+        },
+      },
+      `${user.fullname}'s information`,
+    ),
+  );
 });

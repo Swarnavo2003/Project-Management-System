@@ -1,5 +1,8 @@
 import { Router } from "express";
 import {
+  changeCurrentPassword,
+  forgotPasswordRequest,
+  getCurrentUser,
   loginUser,
   logoutUser,
   registerUser,
@@ -26,5 +29,8 @@ router.post(
   upload.single("avatar"),
   updateProfile,
 );
+router.post("/forgot-password", forgotPasswordRequest);
+router.post("/change-password/:token", changeCurrentPassword);
+router.get("/get-user", isAuthenticated, getCurrentUser);
 
 export default router;
