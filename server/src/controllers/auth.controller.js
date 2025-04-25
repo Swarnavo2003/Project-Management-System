@@ -2,6 +2,7 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import { uploadOnClodinary } from "../utils/cloudinary.js";
 import { emailVerificationMailGenContent, sendMail } from "../utils/mail.js";
 
 export const registerUser = asyncHandler(async (req, res) => {
@@ -127,7 +128,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
   const user = await User.findById(userId);
 
   if (!user) {
-    throw new ApiError(404, "User nor found");
+    throw new ApiError(404, "User not found");
   }
 
   user.refreshToken = undefined;
@@ -138,6 +139,32 @@ export const logoutUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, null, "Logged out successfully"));
+});
+
+export const updateProfile = asyncHandler(async (req, res) => {
+  const userId = req.id;
+  const { fullname } = req.body;
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (fullname) {
+    user.fullname = fullname;
+  }
+
+  if (req.file) {
+    const cloudinaryResult = await uploadOnClodinary(req.file.path, "avatars");
+
+    user.avatar.url = cloudinaryResult.secure_url;
+  }
+
+  await user.save();
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "User Details Updated Successfully"));
 });
 
 export const verifyEmail = asyncHandler(async (req, res) => {
