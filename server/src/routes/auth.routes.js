@@ -6,6 +6,7 @@ import {
   loginUser,
   logoutUser,
   registerUser,
+  resendVerificationEmail,
   updateProfile,
   verifyEmail,
 } from "../controllers/auth.controller.js";
@@ -28,6 +29,11 @@ router.post(
   isAuthenticated,
   upload.single("avatar"),
   updateProfile,
+);
+router.post(
+  "/resend-verification-email",
+  isAuthenticated,
+  resendVerificationEmail,
 );
 router.post("/forgot-password", forgotPasswordRequest);
 router.post("/change-password/:token", changeCurrentPassword);
