@@ -96,6 +96,12 @@ userSchema.methods.generateRefreshToken = async function () {
   return { token, tokenExpiry };
 };
 
+userSchema.methods.generateForgetPasswordToken = async function () {
+  const token = Math.floor(100000 + Math.random() * 900000);
+  const tokenExpiry = new Date(Date.now() + 10 * 60 * 60 * 1000);
+  return { token, tokenExpiry };
+};
+
 userSchema.methods.generateTemporaryToken = async function () {
   const unhashedToken = crypto.randomBytes(20).toString("hex");
 

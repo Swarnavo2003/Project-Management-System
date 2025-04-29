@@ -249,8 +249,8 @@ export const forgotPasswordRequest = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  const { hashedToken, tokenExpiry } = await user.generateTemporaryToken();
-  user.forgotPasswordToken = hashedToken;
+  const { token, tokenExpiry } = await user.generateForgetPasswordToken();
+  user.forgotPasswordToken = token;
   user.forgotPasswordExpiry = tokenExpiry;
 
   await user.save();
@@ -260,7 +260,7 @@ export const forgotPasswordRequest = asyncHandler(async (req, res) => {
     subject: "Change Your Password",
     mailGenContent: emailVerificationMailGenContent(
       user.username,
-      `${process.env.BASE_URL}/api/v1/auth/change-password/${hashedToken}`,
+      `${process.env.BASE_URL}/api/v1/auth/change-password/${token}`,
     ),
   });
 
@@ -271,7 +271,7 @@ export const forgotPasswordRequest = asyncHandler(async (req, res) => {
 
 export const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { token } = req.params;
-  const { password } = req.body;
+  const { otp, password } = req.body;
 
   if (!password) {
     throw new ApiError(400, "Password is required");
@@ -280,6 +280,10 @@ export const changeCurrentPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ forgotPasswordToken: token });
   if (!user) {
     throw new ApiError(404, "Invalid or Expired Token");
+  }
+
+  if (token !== otp) {
+    throw new ApiError(400, "Wrong OTP");
   }
 
   if (user.forgotPasswordExpiry < Date.now()) {
